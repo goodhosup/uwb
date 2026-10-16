@@ -55,6 +55,16 @@ def resolution_m(bw_hz: float) -> float:
     return C / (2 * bw_hz)
 
 
+def multipath_sep_m(bw_hz: float) -> float:
+    """두 경로를 구분할 수 있는 최소 경로 길이 차 c / B [m] (시간 분해능 1/B의 편도 환산)."""
+    return C / bw_hz
+
+
+def noise_dbm(bw_hz: float, nf_db: float = 0.0) -> float:
+    """열잡음 전력 −174 dBm/Hz + 10·log10(B) + NF [dBm]."""
+    return -174 + 10 * math.log10(bw_hz) + nf_db
+
+
 def time_to_m(t_s: float) -> float:
     """편도 전파 시간 → 거리 [m]."""
     return C * t_s
@@ -68,6 +78,13 @@ def eirp_dbm(bw_mhz: float, psd: float = PSD_LIMIT_DBM_PER_MHZ) -> float:
 def fspl_db(d_m: float, f_hz: float) -> float:
     """Friis 자유 공간 경로 손실 [dB]."""
     return 20 * math.log10(4 * math.pi * d_m * f_hz / C)
+
+
+def free_space_range_m(sens_dbm: float, f_hz: float, eirp: float | None = None, g_rx_dbi: float = 0.0) -> float:
+    """수신 감도까지 허용되는 자유 공간 거리 [m] (EIRP 기본값: 499.2 MHz 전체에 −41.3 dBm/MHz)."""
+    eirp = eirp_dbm(499.2) if eirp is None else eirp
+    allowed = eirp + g_rx_dbi - sens_dbm
+    return 10 ** ((allowed - 20 * math.log10(4 * math.pi * f_hz / C)) / 20)
 
 
 def ss_twr_error_m(t_reply_s: float, ppm_a: float, ppm_b: float) -> float:
@@ -111,6 +128,15 @@ EXPECTED = [
     ("타임스탬프 단위 [ps]", T_TS * 1e12, 15.65, 0.01),
     ("타임스탬프 단위 거리 [mm]", time_to_m(T_TS) * 1e3, 4.69, 0.01),
     ("499.2 MHz 원시 분해능 [m]", resolution_m(499.2e6), 0.30, 0.005),
+    ("499.2 MHz 경로 구분 c/B [m]", multipath_sep_m(499.2e6), 0.60, 0.005),
+    ("20 MHz 원시 분해능 [m]", resolution_m(20e6), 7.5, 0.01),
+    ("499.2 MHz 열잡음 [dBm]", noise_dbm(499.2e6), -87.0, 0.05),
+    ("FSPL 10 m @ Ch5 [dB]", fspl_db(10, 6489.6e6), 68.7, 0.05),
+    ("FSPL 10 m @ Ch9 [dB]", fspl_db(10, 7987.2e6), 70.5, 0.05),
+    ("FSPL 1 m @ Ch9 [dB]", fspl_db(1, 7987.2e6), 50.5, 0.05),
+    ("자유 공간 거리, 감도 −90 dBm @ Ch9 [m]", free_space_range_m(-90, 7987.2e6), 18, 0.5),
+    ("자유 공간 거리, 감도 −100 dBm @ Ch9 [m]", free_space_range_m(-100, 7987.2e6), 57, 0.6),
+    ("자유 공간 거리, 감도 −100 dBm @ Ch5 [m]", free_space_range_m(-100, 6489.6e6), 71, 0.5),
     ("1 ns 편도 거리 [cm]", time_to_m(1e-9) * 100, 30.0, 0.1),
     ("499.2 MHz 총 EIRP [dBm]", eirp_dbm(499.2), -14.3, 0.05),
     ("Ch5 중심 [MHz]", CHANNELS[5][0], 6489.6, 1e-6),
@@ -164,7 +190,9 @@ def param_page() -> None:
 | 칩 레이트 | 499.2 MHz | — |
 | 칩 시간 | {T_CHIP * 1e9:.3f} ns | {time_to_m(T_CHIP):.3f} m (편도) |
 | 타임스탬프 단위 (칩/128) | {T_TS * 1e12:.2f} ps | {time_to_m(T_TS) * 1e3:.2f} mm |
-| 원시 거리 분해능 (499.2 MHz) | c / 2B | {resolution_m(499.2e6):.2f} m |
+| 경로 구분 길이 차 (499.2 MHz) | c / B | {multipath_sep_m(499.2e6):.2f} m |
+| 레이더 거리 분해능 (499.2 MHz) | c / 2B | {resolution_m(499.2e6):.2f} m |
+| 열잡음 (499.2 MHz, NF 제외) | −174 dBm/Hz + 10·log₁₀B | {noise_dbm(499.2e6):.1f} dBm |
 | 총 EIRP 상한 (499.2 MHz, −41.3 dBm/MHz) | {eirp_dbm(499.2):.1f} dBm | — |
 """
     out = ROOT / "docs" / "reference" / "parameter-table.md"
