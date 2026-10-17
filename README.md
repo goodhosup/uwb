@@ -28,7 +28,7 @@ python3 -m venv .venv
 | `tools/scaffold.py` | nav에 있는데 파일이 없는 페이지를 스텁으로 생성 |
 | `tools/build_figures.py` | 모든 그림 스크립트 실행 |
 | `tools/gen_abbreviations.py` | `docs/reference/glossary.md` 표 → 약어 툴팁 파일 생성 |
-| `tools/make_cover.py` | 책 표지 `docs/assets/cover.png`(1200×1600) 생성. 한글 글꼴 Noto Sans KR 폴더를 `--font-dir`로 지정 |
+| `diagrams/cover.py` | 책 표지 `docs/assets/cover.png`·`cover.jpg`(1500×1950, 위키독스 표지 비율) 생성 — cellular와 같은 방식 |
 | `tools/export_wikidocs.py` | 위키독스 책 형식으로 내보내기 (`--render`로 Mermaid PNG) |
 | `tools/publish_wikidocs.py` | 위키독스 API로 업로드 (`WIKIDOCS_TOKEN` 환경 변수) |
 | `docs/javascripts/diagrams.mjs` | Mermaid 렌더러 (큰 다이어그램 가독성, 다크 모드, 전체 화면) |
